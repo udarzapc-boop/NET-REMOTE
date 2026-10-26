@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ultimate Web Remote Control (Final & Bug-Free)</title>
+  <title>Ultimate Web Remote Control (Debug Version)</title>
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <style>
     :root {
@@ -126,7 +126,7 @@
 </head>
 <body>
 
-  <h2 style="margin-top: 30px;">🌐 Ultimate Web Remote Control</h2>
+  <h2 style="margin-top: 30px;">🌐 Web Remote Control (Debug Mode)</h2>
 
   <!-- LOGIN -->
   <div id="login-card" class="card">
@@ -141,21 +141,20 @@
     </select>
 
     <div id="host-id-group">
-      <label>Custom Short ID (e.g., my-pc-123):</label>
+      <label>Custom Short ID (e.g., mypc):</label>
       <input type="text" id="custom-id-input" placeholder="Enter an easy name">
     </div>
     
-    <button id="btn-enter" class="btn">Launch Web App ⚡</button>
+    <button id="btn-enter" class="btn">Launch App ⚡</button>
   </div>
 
   <!-- HOST PANEL -->
   <div id="host-panel" class="card" style="max-width: 600px;">
     <h3>🖥️ Host Dashboard</h3>
-    <p style="color: #cbd5e1;">Share this short ID with Clients:</p>
-    <div id="my-peer-id" class="id-box">Connecting...</div>
-    <button id="btn-start-share" class="btn btn-green">Start Sharing Screen</button>
-    <button id="btn-toggle-mic" class="btn btn-purple" style="margin-top: 12px;">🎙️ Enable Voice Chat (Mic)</button>
-    <p id="host-status" style="margin-top: 15px; color: #38bdf8; font-weight: 500;">Status: Waiting to share screen...</p>
+    <p style="color: #cbd5e1;">Share this short ID with Client:</p>
+    <div id="my-peer-id" class="id-box">Connecting to server...</div>
+    <button id="btn-start-share" class="btn btn-green">1. Start Sharing Screen</button>
+    <p id="host-status" style="margin-top: 15px; color: #38bdf8; font-weight: 500;">Status: Initializing...</p>
     <div id="client-list" style="margin-top: 10px; font-size: 14px; color: #22c55e; font-weight: bold;">Connected Clients: 0</div>
   </div>
 
@@ -163,9 +162,8 @@
   <div id="client-panel" class="card" style="max-width: 600px;">
     <h3>💻 Client Dashboard</h3>
     <label>Enter Host's Short ID:</label>
-    <input type="text" id="target-id-input" placeholder="e.g., my-pc-123">
-    <button id="btn-request" class="btn">Request Access</button>
-    <button id="btn-client-mic" class="btn btn-purple" style="margin-top: 12px;">🎙️ Enable Voice Chat (Mic)</button>
+    <input type="text" id="target-id-input" placeholder="e.g., mypc">
+    <button id="btn-request" class="btn">1. Request Access</button>
     <p id="client-status" style="margin-top: 15px; color: #38bdf8; font-weight: 500;">Status: Ready to connect</p>
   </div>
 
@@ -175,21 +173,6 @@
       <video id="remoteVideo" autoplay playsinline></video>
       <div id="key-hud">⌨️ Key: None</div>
       <div id="perf-hud">📊 Ping: calculating...<br>💻 CPU Cores: -<br>🧠 RAM: -</div>
-      
-      <div id="radar-hud">
-        📡 P2P RADAR
-        <canvas id="radarCanvas" width="120" height="120"></canvas>
-        <span style="font-size: 10px; color: #22c55e;">NODE: ACTIVE</span>
-      </div>
-    </div>
-
-    <div class="card" style="margin: 25px auto; max-width: 1100px;">
-      <h3 style="margin-top: 0;">📁 File Transfer</h3>
-      <div class="transfer-box">
-        <input type="file" id="file-input" style="background: rgba(15,23,42,0.8); padding: 10px; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.3);">
-        <button id="btn-send-file" class="btn btn-green" style="margin-top: 12px;">Send File 🚀</button>
-        <p id="file-status" style="font-size: 14px; color: #38bdf8; margin-top: 10px;"></p>
-      </div>
     </div>
   </div>
 
@@ -203,22 +186,16 @@
     </div>
   </div>
 
-  <audio id="remoteAudio" autoplay style="display:none;"></audio>
-
   <script>
     let peer = null;
     let localStream = null;
-    let localMicStream = null;
     let activeConnections = {}; 
     let activeConnectionClient = null;
     let pendingConnection = null;
-    let pingInterval = null;
-    let radarAnimId = null;
 
     function toggleRoleFields() {
       const role = document.getElementById('role-select').value;
-      const hostIdGroup = document.getElementById('host-id-group');
-      hostIdGroup.style.display = (role === 'client') ? 'none' : 'block';
+      document.getElementById('host-id-group').style.display = (role === 'client') ? 'none' : 'block';
     }
 
     const loginCard = document.getElementById('login-card');
@@ -232,16 +209,8 @@
     const clientStatus = document.getElementById('client-status');
     const targetIdInput = document.getElementById('target-id-input');
     const remoteVideo = document.getElementById('remoteVideo');
-    const remoteAudio = document.getElementById('remoteAudio');
-    const videoWrapper = document.getElementById('video-wrapper');
-    const keyHud = document.getElementById('key-hud');
-    const perfHud = document.getElementById('perf-hud');
-    const radarHud = document.getElementById('radar-hud');
     const modal = document.getElementById('modal');
     const modalText = document.getElementById('modal-text');
-    const fileInput = document.getElementById('file-input');
-    const fileStatus = document.getElementById('file-status');
-    const clientListDiv = document.getElementById('client-list');
 
     document.getElementById('btn-enter').addEventListener('click', () => {
       const username = usernameInput.value.trim();
@@ -262,20 +231,17 @@
         if (role === 'host') {
           hostPanel.style.display = 'block';
           myPeerIdDiv.innerText = id;
+          hostStatus.innerText = "Status: Connected to PeerJS Server. Ready to share screen.";
           initHostLogic();
         } else {
           clientPanel.style.display = 'block';
+          clientStatus.innerText = "Status: Connected to PeerJS Server. Enter Host ID.";
           initClientLogic();
         }
       });
 
       peer.on('error', (err) => {
-        if (err.type === 'unavailable-id') {
-          alert("This Short ID is already taken! Please refresh and try another name.");
-          location.reload();
-        } else {
-          alert("Peer error: " + err.type);
-        }
+        alert("PeerJS Error: " + err.type + " - " + err.message);
       });
     });
 
@@ -284,81 +250,47 @@
       document.getElementById('btn-start-share').addEventListener('click', async () => {
         try {
           localStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
-          hostStatus.innerText = "Status: Screen sharing active. Ready for clients.";
+          hostStatus.innerText = "Status: Screen sharing active! Waiting for client requests...";
         } catch (err) {
-          alert("Screen share permission required!");
-        }
-      });
-
-      document.getElementById('btn-toggle-mic').addEventListener('click', async () => {
-        try {
-          localMicStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-          document.getElementById('btn-toggle-mic').innerText = "🎙️ Mic Active ✅";
-          document.getElementById('btn-toggle-mic').style.background = "linear-gradient(135deg, #22c55e 0%, #15803d 100%)";
-          
-          Object.values(activeConnections).forEach(client => {
-            peer.call(client.peer, localMicStream);
-          });
-        } catch (err) {
-          alert("Microphone permission denied!");
+          alert("Screen share permission denied or cancelled!");
         }
       });
 
       peer.on('connection', (conn) => {
+        hostStatus.innerText = `Status: Incoming connection from client (${conn.peer})...`;
+        
         conn.on('data', (data) => {
           if (data.type === 'REQUEST_ACCESS') {
             pendingConnection = conn;
             modalText.innerText = `${data.clientName} wants to connect. Allow?`;
             modal.style.display = 'flex';
-          } 
-          else if (data.type === 'REMOTE_INPUT' && data.action === 'click') {
-            showClickEffect(data.x, data.y);
-          }
-          else if (data.type === 'KEY_INPUT') {
-            showKeyHud(data.key);
-          }
-          else if (data.file) {
-            handleIncomingFile(data);
-          }
-          else if (data.type === 'PING') {
-            conn.send({ type: 'PONG', clientTime: data.time });
+            hostStatus.innerText = `Status: Request received from ${data.clientName}. Waiting your approval.`;
           }
         });
 
         conn.on('close', () => {
           delete activeConnections[conn.peer];
-          updateClientCount();
-        });
-      });
-
-      // Host incoming call handling (Voice chat from client)
-      peer.on('call', (call) => {
-        call.answer();
-        call.on('stream', (stream) => {
-          remoteAudio.srcObject = stream;
+          document.getElementById('client-list').innerText = `Connected Clients: ${Object.keys(activeConnections).length}`;
         });
       });
 
       document.getElementById('btn-allow').onclick = () => {
+        if (!localStream) {
+          alert("⚠️ Please click 'Start Sharing Screen' first!");
+          return;
+        }
+
         modal.style.display = 'none';
-        if (pendingConnection && localStream) {
+        if (pendingConnection) {
           const clientId = pendingConnection.peer;
           activeConnections[clientId] = pendingConnection;
-          updateClientCount();
+          document.getElementById('client-list').innerText = `Connected Clients: ${Object.keys(activeConnections).length}`;
 
           pendingConnection.send({ type: 'PERMISSION_GRANTED' });
           peer.call(clientId, localStream);
 
-          if (localMicStream) {
-            peer.call(clientId, localMicStream);
-          }
-
           workspace.style.display = 'block';
-          keyHud.style.display = 'block';
-          perfHud.style.display = 'block';
-          radarHud.style.display = 'block';
-          startRadarAnimation();
-          hostStatus.innerText = `Status: Connected with ${Object.keys(activeConnections).length} client(s)!`;
+          hostStatus.innerText = "Status: Client approved & stream sent!";
         }
       };
 
@@ -368,28 +300,6 @@
       };
     }
 
-    function updateClientCount() {
-      const count = Object.keys(activeConnections).length;
-      clientListDiv.innerText = `Connected Clients: ${count}`;
-    }
-
-    function showClickEffect(relX, relY) {
-      const absX = relX * remoteVideo.clientWidth;
-      const absY = relY * remoteVideo.clientHeight;
-      const marker = document.createElement('div');
-      marker.className = 'click-marker';
-      marker.style.left = absX + 'px';
-      marker.style.top = absY + 'px';
-      videoWrapper.appendChild(marker);
-      setTimeout(() => marker.remove(), 400);
-    }
-
-    function showKeyHud(keyName) {
-      keyHud.innerText = `⌨️ Key: [ ${keyName} ]`;
-      keyHud.style.background = 'rgba(2, 132, 199, 0.85)';
-      setTimeout(() => keyHud.style.background = 'rgba(15, 23, 42, 0.85)', 300);
-    }
-
     // --- CLIENT LOGIC ---
     function initClientLogic() {
       document.getElementById('btn-request').addEventListener('click', () => {
@@ -397,182 +307,36 @@
         const username = usernameInput.value.trim();
         if (!hostId) { alert("Enter Host Short ID!"); return; }
 
-        clientStatus.innerText = "Status: Connecting to Host...";
+        clientStatus.innerText = `Status: Connecting to Host (${hostId})...`;
         activeConnectionClient = peer.connect(hostId);
 
         activeConnectionClient.on('open', () => {
+          clientStatus.innerText = "Status: Connected to Host! Sending access request...";
           activeConnectionClient.send({ type: 'REQUEST_ACCESS', clientName: username });
-          clientStatus.innerText = "Status: Request sent. Waiting approval...";
-          startPingMonitor(activeConnectionClient);
+        });
+
+        activeConnectionClient.on('error', (err) => {
+          clientStatus.innerText = "Status: Connection error: " + err;
         });
 
         activeConnectionClient.on('data', (data) => {
           if (data.type === 'PERMISSION_GRANTED') {
-            clientStatus.innerText = "Status: Approved! Connecting stream...";
+            clientStatus.innerText = "Status: Approved by Host! Waiting for video stream...";
           } else if (data.type === 'PERMISSION_DENIED') {
-            clientStatus.innerText = "Status: Access Denied!";
-          } else if (data.file) {
-            handleIncomingFile(data);
-          } else if (data.type === 'PONG') {
-            const latency = Date.now() - data.clientTime;
-            updatePerfHud(latency);
+            clientStatus.innerText = "Status: Access Denied by Host!";
           }
         });
-      });
-
-      document.getElementById('btn-client-mic').addEventListener('click', async () => {
-        try {
-          localMicStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-          document.getElementById('btn-client-mic').innerText = "🎙️ Mic Active ✅";
-          document.getElementById('btn-client-mic').style.background = "linear-gradient(135deg, #22c55e 0%, #15803d 100%)";
-          
-          const hostId = targetIdInput.value.trim();
-          if (hostId) {
-            peer.call(hostId, localMicStream);
-          }
-        } catch (err) {
-          alert("Microphone permission denied!");
-        }
       });
 
       peer.on('call', (call) => {
-        call.answer(localMicStream || undefined);
+        clientStatus.innerText = "Status: Receiving video call from Host...";
+        call.answer();
         call.on('stream', (stream) => {
           workspace.style.display = 'block';
-          perfHud.style.display = 'block';
-          radarHud.style.display = 'block';
-          startRadarAnimation();
-
-          if (stream.getVideoTracks().length > 0) {
-            remoteVideo.srcObject = stream;
-            clientStatus.innerText = "Status: Connected & Streaming!";
-
-            remoteVideo.addEventListener('click', (e) => {
-              const x = (e.clientX - remoteVideo.getBoundingClientRect().left) / remoteVideo.clientWidth;
-              const y = (e.clientY - remoteVideo.getBoundingClientRect().top) / remoteVideo.clientHeight;
-              if (activeConnectionClient && activeConnectionClient.open) {
-                activeConnectionClient.send({ type: 'REMOTE_INPUT', action: 'click', x, y });
-              }
-            });
-
-            window.addEventListener('keydown', (e) => {
-              if (activeConnectionClient && activeConnectionClient.open) {
-                activeConnectionClient.send({ type: 'KEY_INPUT', key: e.key });
-              }
-            });
-          } else {
-            remoteAudio.srcObject = stream;
-          }
+          remoteVideo.srcObject = stream;
+          clientStatus.innerText = "Status: Streaming active successfully! ✅";
         });
       });
-    }
-
-    function startPingMonitor(conn) {
-      clearInterval(pingInterval);
-      pingInterval = setInterval(() => {
-        if (conn && conn.open) {
-          conn.send({ type: 'PING', time: Date.now() });
-        }
-      }, 2000);
-    }
-
-    function updatePerfHud(pingMs) {
-      const cores = navigator.hardwareConcurrency || 'N/A';
-      const ram = navigator.deviceMemory ? `${navigator.deviceMemory} GB` : 'N/A';
-      perfHud.innerHTML = `📊 Ping: <b>${pingMs} ms</b><br>💻 CPU Cores: <b>${cores}</b><br>🧠 RAM: <b>${ram}</b>`;
-    }
-
-    function startRadarAnimation() {
-      const canvas = document.getElementById('radarCanvas');
-      const ctx = canvas.getContext('2d');
-      let angle = 0;
-
-      function drawRadar() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
-        const radius = 50;
-
-        ctx.strokeStyle = 'rgba(56, 189, 248, 0.3)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-        ctx.arc(centerX, centerY, radius / 2, 0, Math.PI * 2);
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(centerX - radius, centerY); ctx.lineTo(centerX + radius, centerY);
-        ctx.moveTo(centerX, centerY - radius); ctx.lineTo(centerX, centerY + radius);
-        ctx.stroke();
-
-        ctx.save();
-        ctx.translate(centerX, centerY);
-        ctx.rotate(angle);
-        const gradient = ctx.createLinearGradient(0, 0, radius, 0);
-        gradient.addColorStop(0, 'rgba(56, 189, 248, 0.8)');
-        gradient.addColorStop(1, 'rgba(56, 189, 248, 0)');
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.arc(0, 0, radius, -0.4, 0);
-        ctx.lineTo(0, 0);
-        ctx.fill();
-        ctx.restore();
-
-        ctx.fillStyle = '#22c55e';
-        ctx.beginPath();
-        ctx.arc(centerX + 15, centerY - 20, 3, 0, Math.PI * 2);
-        ctx.arc(centerX - 20, centerY + 15, 3, 0, Math.PI * 2);
-        ctx.fill();
-
-        angle += 0.05;
-        radarAnimId = requestAnimationFrame(drawRadar);
-      }
-      if (!radarAnimId) drawRadar();
-    }
-
-    // --- FILE TRANSFER ---
-    document.getElementById('btn-send-file').addEventListener('click', () => {
-      const file = fileInput.files[0];
-      if (!file) { alert("Please select a file first!"); return; }
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const fileData = {
-          file: true,
-          fileName: file.name,
-          fileType: file.type,
-          fileBuffer: e.target.result
-        };
-
-        const role = roleSelect.value;
-        if (role === 'host') {
-          Object.values(activeConnections).forEach(conn => conn.send(fileData));
-        } else {
-          if (activeConnectionClient && activeConnectionClient.open) {
-            activeConnectionClient.send(fileData);
-          }
-        }
-        fileStatus.innerText = `File sent successfully: ${file.name} ✅`;
-      };
-      reader.readAsArrayBuffer(file);
-    });
-
-    function handleIncomingFile(data) {
-      fileStatus.innerText = `Receiving file: ${data.fileName}...`;
-      const blob = new Blob([data.fileBuffer], { type: data.fileType });
-      const url = URL.createObjectURL(blob);
-      
-      const downloadLink = document.createElement('a');
-      downloadLink.href = url;
-      downloadLink.download = data.fileName;
-      downloadLink.innerText = `📥 Download Received File: ${data.fileName}`;
-      downloadLink.style.display = 'block';
-      downloadLink.style.marginTop = '10px';
-      downloadLink.style.color = '#38bdf8';
-      downloadLink.style.fontWeight = 'bold';
-      
-      fileStatus.appendChild(downloadLink);
     }
   </script>
 </body>
