@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GitHub Hosted Ultimate Web Remote Control</title>
+  <title>Ultimate Web Remote Control (Final & Bug-Free)</title>
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <style>
     :root {
@@ -44,12 +44,6 @@
       padding: 30px; 
       border-radius: 16px; 
       text-align: left; 
-      animation: floatCard 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-
-    @keyframes floatCard {
-      0% { opacity: 0; transform: translateY(20px) scale(0.95); }
-      100% { opacity: 1; transform: translateY(0) scale(1); }
     }
 
     h2, h3 { color: #f8fafc; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
@@ -65,7 +59,6 @@
       border-radius: 8px; 
       box-sizing: border-box; 
       outline: none;
-      transition: all 0.3s ease;
     }
 
     input:focus, select:focus {
@@ -88,58 +81,52 @@
     }
     .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6); }
 
-    .btn-green { background: linear-gradient(135deg, #22c55e 0%, #15803d 100%); box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4); }
-    .btn-red { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4); }
-    .btn-purple { background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4); }
+    .btn-green { background: linear-gradient(135deg, #22c55e 0%, #15803d 100%); }
+    .btn-red { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); }
+    .btn-purple { background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); }
     
     #host-panel, #client-panel, #workspace { display: none; }
     
     #video-wrapper { position: relative; display: inline-block; margin-top: 15px; }
-    video { width: 95vw; max-width: 1100px; border: 2px solid var(--glass-border); border-radius: 12px; background: #000; display: block; cursor: crosshair; box-shadow: var(--glass-shadow); }
+    video { width: 95vw; max-width: 1100px; border: 2px solid var(--glass-border); border-radius: 12px; background: #000; display: block; cursor: crosshair; }
     
-    /* Click Marker */
     .click-marker {
       position: absolute; width: 22px; height: 22px; background: rgba(239, 68, 68, 0.85);
       border: 2px solid #fff; border-radius: 50%; transform: translate(-50%, -50%);
       pointer-events: none; animation: ping 0.4s ease-out forwards; z-index: 99;
-      box-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
     }
     @keyframes ping {
       0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
       100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
     }
 
-    /* HUDs */
     #key-hud {
       position: absolute; bottom: 20px; left: 20px; background: rgba(15, 23, 42, 0.85);
-      backdrop-filter: blur(8px); border: 1px solid #38bdf8; color: #38bdf8; padding: 10px 14px; border-radius: 8px;
+      border: 1px solid #38bdf8; color: #38bdf8; padding: 10px 14px; border-radius: 8px;
       font-family: monospace; font-size: 13px; display: none; z-index: 100;
     }
     #perf-hud {
       position: absolute; top: 20px; right: 20px; background: rgba(15, 23, 42, 0.85);
-      backdrop-filter: blur(8px); border: 1px solid #22c55e; color: #22c55e; padding: 10px 14px; border-radius: 8px;
+      border: 1px solid #22c55e; color: #22c55e; padding: 10px 14px; border-radius: 8px;
       font-family: monospace; font-size: 12px; display: none; z-index: 100; text-align: left;
     }
-
-    /* Network Radar HUD */
     #radar-hud {
       position: absolute; top: 20px; left: 20px; background: rgba(15, 23, 42, 0.85);
-      backdrop-filter: blur(8px); border: 1px solid #38bdf8; border-radius: 8px; padding: 10px;
+      border: 1px solid #38bdf8; border-radius: 8px; padding: 10px;
       display: none; z-index: 100; width: 140px; text-align: center; font-family: monospace; font-size: 11px; color: #38bdf8;
     }
     canvas#radarCanvas { width: 120px; height: 120px; display: block; margin: 0 auto; }
 
     .transfer-box { background: rgba(17, 24, 39, 0.7); padding: 18px; border-radius: 10px; margin-top: 15px; border: 1px dashed rgba(56, 189, 248, 0.3); }
     
-    /* Modal */
     #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 999; justify-content: center; align-items: center; }
-    .modal-content { background: var(--glass-bg); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); padding: 35px; width: 380px; border-radius: 16px; text-align: center; box-shadow: var(--glass-shadow); }
+    .modal-content { background: var(--glass-bg); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); padding: 35px; width: 380px; border-radius: 16px; text-align: center; }
     .id-box { background: rgba(15, 23, 42, 0.7); padding: 12px; border-radius: 8px; font-family: monospace; color: #38bdf8; word-break: break-all; margin: 12px 0; border: 1px solid rgba(56, 189, 248, 0.3); }
   </style>
 </head>
 <body>
 
-  <h2 style="margin-top: 30px; letter-spacing: 1px;">🌐 GitHub Hosted Web Remote Control</h2>
+  <h2 style="margin-top: 30px;">🌐 Ultimate Web Remote Control</h2>
 
   <!-- LOGIN -->
   <div id="login-card" class="card">
@@ -148,10 +135,15 @@
     <input type="text" id="username" placeholder="Enter your name">
     
     <label>Select Role:</label>
-    <select id="role-select">
-      <option value="host">Host (Share Screen to Many Clients)</option>
+    <select id="role-select" onchange="toggleRoleFields()">
+      <option value="host">Host (Share Screen)</option>
       <option value="client">Client (View & Control)</option>
     </select>
+
+    <div id="host-id-group">
+      <label>Custom Short ID (e.g., my-pc-123):</label>
+      <input type="text" id="custom-id-input" placeholder="Enter an easy name">
+    </div>
     
     <button id="btn-enter" class="btn">Launch Web App ⚡</button>
   </div>
@@ -159,8 +151,8 @@
   <!-- HOST PANEL -->
   <div id="host-panel" class="card" style="max-width: 600px;">
     <h3>🖥️ Host Dashboard</h3>
-    <p style="color: #cbd5e1;">Share this unique ID with Clients:</p>
-    <div id="my-peer-id" class="id-box">Generating ID...</div>
+    <p style="color: #cbd5e1;">Share this short ID with Clients:</p>
+    <div id="my-peer-id" class="id-box">Connecting...</div>
     <button id="btn-start-share" class="btn btn-green">Start Sharing Screen</button>
     <button id="btn-toggle-mic" class="btn btn-purple" style="margin-top: 12px;">🎙️ Enable Voice Chat (Mic)</button>
     <p id="host-status" style="margin-top: 15px; color: #38bdf8; font-weight: 500;">Status: Waiting to share screen...</p>
@@ -170,8 +162,8 @@
   <!-- CLIENT PANEL -->
   <div id="client-panel" class="card" style="max-width: 600px;">
     <h3>💻 Client Dashboard</h3>
-    <label>Enter Host's ID:</label>
-    <input type="text" id="target-id-input" placeholder="Paste Host Peer ID here">
+    <label>Enter Host's Short ID:</label>
+    <input type="text" id="target-id-input" placeholder="e.g., my-pc-123">
     <button id="btn-request" class="btn">Request Access</button>
     <button id="btn-client-mic" class="btn btn-purple" style="margin-top: 12px;">🎙️ Enable Voice Chat (Mic)</button>
     <p id="client-status" style="margin-top: 15px; color: #38bdf8; font-weight: 500;">Status: Ready to connect</p>
@@ -184,7 +176,6 @@
       <div id="key-hud">⌨️ Key: None</div>
       <div id="perf-hud">📊 Ping: calculating...<br>💻 CPU Cores: -<br>🧠 RAM: -</div>
       
-      <!-- Network Radar Scanner HUD -->
       <div id="radar-hud">
         📡 P2P RADAR
         <canvas id="radarCanvas" width="120" height="120"></canvas>
@@ -192,7 +183,6 @@
       </div>
     </div>
 
-    <!-- File Transfer Section -->
     <div class="card" style="margin: 25px auto; max-width: 1100px;">
       <h3 style="margin-top: 0;">📁 File Transfer</h3>
       <div class="transfer-box">
@@ -220,9 +210,16 @@
     let localStream = null;
     let localMicStream = null;
     let activeConnections = {}; 
+    let activeConnectionClient = null;
     let pendingConnection = null;
     let pingInterval = null;
     let radarAnimId = null;
+
+    function toggleRoleFields() {
+      const role = document.getElementById('role-select').value;
+      const hostIdGroup = document.getElementById('host-id-group');
+      hostIdGroup.style.display = (role === 'client') ? 'none' : 'block';
+    }
 
     const loginCard = document.getElementById('login-card');
     const hostPanel = document.getElementById('host-panel');
@@ -248,19 +245,36 @@
 
     document.getElementById('btn-enter').addEventListener('click', () => {
       const username = usernameInput.value.trim();
+      const role = roleSelect.value;
       if (!username) { alert("Please enter your name!"); return; }
 
       loginCard.style.display = 'none';
-      peer = new Peer();
+
+      if (role === 'host') {
+        const customId = document.getElementById('custom-id-input').value.trim();
+        const finalId = customId ? customId : 'pc-' + Math.floor(1000 + Math.random() * 9000);
+        peer = new Peer(finalId);
+      } else {
+        peer = new Peer();
+      }
 
       peer.on('open', (id) => {
-        if (roleSelect.value === 'host') {
+        if (role === 'host') {
           hostPanel.style.display = 'block';
           myPeerIdDiv.innerText = id;
           initHostLogic();
         } else {
           clientPanel.style.display = 'block';
           initClientLogic();
+        }
+      });
+
+      peer.on('error', (err) => {
+        if (err.type === 'unavailable-id') {
+          alert("This Short ID is already taken! Please refresh and try another name.");
+          location.reload();
+        } else {
+          alert("Peer error: " + err.type);
         }
       });
     });
@@ -317,6 +331,14 @@
         });
       });
 
+      // Host incoming call handling (Voice chat from client)
+      peer.on('call', (call) => {
+        call.answer();
+        call.on('stream', (stream) => {
+          remoteAudio.srcObject = stream;
+        });
+      });
+
       document.getElementById('btn-allow').onclick = () => {
         modal.style.display = 'none';
         if (pendingConnection && localStream) {
@@ -370,23 +392,21 @@
 
     // --- CLIENT LOGIC ---
     function initClientLogic() {
-      let activeConnection = null;
-
       document.getElementById('btn-request').addEventListener('click', () => {
         const hostId = targetIdInput.value.trim();
         const username = usernameInput.value.trim();
-        if (!hostId) { alert("Enter Host ID!"); return; }
+        if (!hostId) { alert("Enter Host Short ID!"); return; }
 
         clientStatus.innerText = "Status: Connecting to Host...";
-        activeConnection = peer.connect(hostId);
+        activeConnectionClient = peer.connect(hostId);
 
-        activeConnection.on('open', () => {
-          activeConnection.send({ type: 'REQUEST_ACCESS', clientName: username });
+        activeConnectionClient.on('open', () => {
+          activeConnectionClient.send({ type: 'REQUEST_ACCESS', clientName: username });
           clientStatus.innerText = "Status: Request sent. Waiting approval...";
-          startPingMonitor(activeConnection);
+          startPingMonitor(activeConnectionClient);
         });
 
-        activeConnection.on('data', (data) => {
+        activeConnectionClient.on('data', (data) => {
           if (data.type === 'PERMISSION_GRANTED') {
             clientStatus.innerText = "Status: Approved! Connecting stream...";
           } else if (data.type === 'PERMISSION_DENIED') {
@@ -402,12 +422,13 @@
 
       document.getElementById('btn-client-mic').addEventListener('click', async () => {
         try {
-          const micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+          localMicStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
           document.getElementById('btn-client-mic').innerText = "🎙️ Mic Active ✅";
           document.getElementById('btn-client-mic').style.background = "linear-gradient(135deg, #22c55e 0%, #15803d 100%)";
           
-          if (targetIdInput.value.trim()) {
-            peer.call(targetIdInput.value.trim(), micStream);
+          const hostId = targetIdInput.value.trim();
+          if (hostId) {
+            peer.call(hostId, localMicStream);
           }
         } catch (err) {
           alert("Microphone permission denied!");
@@ -415,7 +436,7 @@
       });
 
       peer.on('call', (call) => {
-        call.answer();
+        call.answer(localMicStream || undefined);
         call.on('stream', (stream) => {
           workspace.style.display = 'block';
           perfHud.style.display = 'block';
@@ -429,14 +450,14 @@
             remoteVideo.addEventListener('click', (e) => {
               const x = (e.clientX - remoteVideo.getBoundingClientRect().left) / remoteVideo.clientWidth;
               const y = (e.clientY - remoteVideo.getBoundingClientRect().top) / remoteVideo.clientHeight;
-              if (activeConnection && activeConnection.open) {
-                activeConnection.send({ type: 'REMOTE_INPUT', action: 'click', x, y });
+              if (activeConnectionClient && activeConnectionClient.open) {
+                activeConnectionClient.send({ type: 'REMOTE_INPUT', action: 'click', x, y });
               }
             });
 
             window.addEventListener('keydown', (e) => {
-              if (activeConnection && activeConnection.open) {
-                activeConnection.send({ type: 'KEY_INPUT', key: e.key });
+              if (activeConnectionClient && activeConnectionClient.open) {
+                activeConnectionClient.send({ type: 'KEY_INPUT', key: e.key });
               }
             });
           } else {
@@ -461,7 +482,6 @@
       perfHud.innerHTML = `📊 Ping: <b>${pingMs} ms</b><br>💻 CPU Cores: <b>${cores}</b><br>🧠 RAM: <b>${ram}</b>`;
     }
 
-    // --- RADAR ANIMATION ---
     function startRadarAnimation() {
       const canvas = document.getElementById('radarCanvas');
       const ctx = canvas.getContext('2d');
@@ -525,8 +545,13 @@
           fileBuffer: e.target.result
         };
 
-        if (roleSelect.value === 'host') {
+        const role = roleSelect.value;
+        if (role === 'host') {
           Object.values(activeConnections).forEach(conn => conn.send(fileData));
+        } else {
+          if (activeConnectionClient && activeConnectionClient.open) {
+            activeConnectionClient.send(fileData);
+          }
         }
         fileStatus.innerText = `File sent successfully: ${file.name} ✅`;
       };
