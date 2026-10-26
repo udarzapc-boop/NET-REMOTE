@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ultimate Web Remote Control (All-in-One)</title>
+  <title>Ultimate Web Remote Control (Advanced Edition)</title>
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <style>
     :root {
@@ -49,7 +49,7 @@
     h2, h3 { color: #f8fafc; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
     label { font-size: 14px; font-weight: 500; color: #cbd5e1; }
 
-    input, select { 
+    input, select, textarea { 
       width: 100%; 
       padding: 14px; 
       margin: 10px 0 20px 0; 
@@ -61,7 +61,7 @@
       outline: none;
     }
 
-    input:focus, select:focus {
+    input:focus, select:focus, textarea:focus {
       border-color: var(--primary-glow);
       box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
     }
@@ -117,7 +117,7 @@
     }
     canvas#radarCanvas { width: 120px; height: 120px; display: block; margin: 0 auto; }
 
-    .transfer-box { background: rgba(17, 24, 39, 0.7); padding: 18px; border-radius: 10px; margin-top: 15px; border: 1px dashed rgba(56, 189, 248, 0.3); }
+    .control-box { background: rgba(17, 24, 39, 0.7); padding: 18px; border-radius: 10px; margin-top: 15px; border: 1px dashed rgba(56, 189, 248, 0.3); }
     
     #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 999; justify-content: center; align-items: center; }
     .modal-content { background: var(--glass-bg); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); padding: 35px; width: 380px; border-radius: 16px; text-align: center; }
@@ -126,7 +126,7 @@
 </head>
 <body>
 
-  <h2 style="margin-top: 30px;">🌐 Ultimate Web Remote Control</h2>
+  <h2 style="margin-top: 30px;">🌐 Ultimate Web Remote Control (Advanced)</h2>
 
   <!-- LOGIN -->
   <div id="login-card" class="card">
@@ -183,14 +183,38 @@
       </div>
     </div>
 
+    <!-- SEPARATE SECTIONS BELOW WORKSPACE (NOT ON VIDEO SCREEN) -->
+    
+    <!-- 1. File Transfer Section -->
     <div class="card" style="margin: 25px auto; max-width: 1100px;">
       <h3 style="margin-top: 0;">📁 File Transfer</h3>
-      <div class="transfer-box">
+      <div class="control-box">
         <input type="file" id="file-input" style="background: rgba(15,23,42,0.8); padding: 10px; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.3);">
         <button id="btn-send-file" class="btn btn-green" style="margin-top: 12px;">Send File 🚀</button>
         <p id="file-status" style="font-size: 14px; color: #38bdf8; margin-top: 10px;"></p>
       </div>
     </div>
+
+    <!-- 2. Real-time Bandwidth & Network Traffic Graph -->
+    <div class="card" style="margin: 25px auto; max-width: 1100px;">
+      <h3 style="margin-top: 0;">📊 Real-time Network Bandwidth Traffic</h3>
+      <div class="control-box" style="text-align: center;">
+        <canvas id="bandwidthCanvas" width="600" height="120" style="width: 100%; max-width: 600px; background: rgba(15,23,42,0.9); border-radius: 8px; border: 1px solid rgba(56,189,248,0.3); display: block; margin: 0 auto;"></canvas>
+        <p id="traffic-stats" style="font-size: 13px; color: #38bdf8; font-family: monospace; margin-top: 10px;">Current Throughput: 0 KB/s</p>
+      </div>
+    </div>
+
+    <!-- 3. Encrypted Self-Destructing Secure Vault -->
+    <div class="card" style="margin: 25px auto; max-width: 1100px;">
+      <h3 style="margin-top: 0;">🔐 Secure Vault (Self-Destructing Notes)</h3>
+      <div class="control-box">
+        <label>Type Secret Message / Credential:</label>
+        <textarea id="vault-input" rows="3" placeholder="Enter sensitive note here..."></textarea>
+        <button id="btn-send-vault" class="btn btn-purple" style="margin-top: 5px;">Send Self-Destruct Note 🔒</button>
+        <div id="vault-display" style="margin-top: 15px; font-family: monospace; font-size: 14px; color: #22c55e;"></div>
+      </div>
+    </div>
+
   </div>
 
   <!-- PERMISSION MODAL -->
@@ -214,6 +238,10 @@
     let pendingConnection = null;
     let pingInterval = null;
     let radarAnimId = null;
+
+    // Bandwidth Traffic Variables
+    let bytesTransferred = 0;
+    let bandwidthHistory = new Array(30).fill(0);
 
     function toggleRoleFields() {
       const role = document.getElementById('role-select').value;
@@ -305,6 +333,8 @@
 
       peer.on('connection', (conn) => {
         conn.on('data', (data) => {
+          trackTraffic(JSON.stringify(data).length);
+
           if (data.type === 'REQUEST_ACCESS') {
             pendingConnection = conn;
             modalText.innerText = `${data.clientName} wants to connect. Allow?`;
@@ -318,6 +348,9 @@
           }
           else if (data.file) {
             handleIncomingFile(data);
+          }
+          else if (data.type === 'SECURE_VAULT') {
+            handleIncomingVault(data.message);
           }
           else if (data.type === 'PING') {
             conn.send({ type: 'PONG', clientTime: data.time });
@@ -361,6 +394,7 @@
           perfHud.style.display = 'block';
           radarHud.style.display = 'block';
           startRadarAnimation();
+          startBandwidthGraph();
           hostStatus.innerText = `Status: Connected with ${Object.keys(activeConnections).length} client(s)!`;
         }
       };
@@ -410,12 +444,16 @@
         });
 
         activeConnectionClient.on('data', (data) => {
+          trackTraffic(JSON.stringify(data).length);
+
           if (data.type === 'PERMISSION_GRANTED') {
             clientStatus.innerText = "Status: Approved! Connecting stream...";
           } else if (data.type === 'PERMISSION_DENIED') {
             clientStatus.innerText = "Status: Access Denied!";
           } else if (data.file) {
             handleIncomingFile(data);
+          } else if (data.type === 'SECURE_VAULT') {
+            handleIncomingVault(data.message);
           } else if (data.type === 'PONG') {
             const latency = Date.now() - data.clientTime;
             updatePerfHud(latency);
@@ -445,6 +483,7 @@
           perfHud.style.display = 'block';
           radarHud.style.display = 'block';
           startRadarAnimation();
+          startBandwidthGraph();
 
           if (stream.getVideoTracks().length > 0) {
             remoteVideo.srcObject = stream;
@@ -454,13 +493,17 @@
               const x = (e.clientX - remoteVideo.getBoundingClientRect().left) / remoteVideo.clientWidth;
               const y = (e.clientY - remoteVideo.getBoundingClientRect().top) / remoteVideo.clientHeight;
               if (activeConnectionClient && activeConnectionClient.open) {
-                activeConnectionClient.send({ type: 'REMOTE_INPUT', action: 'click', x, y });
+                const clickMsg = { type: 'REMOTE_INPUT', action: 'click', x, y };
+                activeConnectionClient.send(clickMsg);
+                trackTraffic(JSON.stringify(clickMsg).length);
               }
             });
 
             window.addEventListener('keydown', (e) => {
               if (activeConnectionClient && activeConnectionClient.open) {
-                activeConnectionClient.send({ type: 'KEY_INPUT', key: e.key });
+                const keyMsg = { type: 'KEY_INPUT', key: e.key };
+                activeConnectionClient.send(keyMsg);
+                trackTraffic(JSON.stringify(keyMsg).length);
               }
             });
           } else {
@@ -474,7 +517,9 @@
       clearInterval(pingInterval);
       pingInterval = setInterval(() => {
         if (conn && conn.open) {
-          conn.send({ type: 'PING', time: Date.now() });
+          const pingMsg = { type: 'PING', time: Date.now() };
+          conn.send(pingMsg);
+          trackTraffic(JSON.stringify(pingMsg).length);
         }
       }, 2000);
     }
@@ -534,6 +579,71 @@
       if (!radarAnimId) drawRadar();
     }
 
+    // --- BANDWIDTH & TRAFFIC GRAPH ---
+    function trackTraffic(bytes) {
+      bytesTransferred += bytes;
+    }
+
+    function startBandwidthGraph() {
+      const canvas = document.getElementById('bandwidthCanvas');
+      const ctx = canvas.getContext('2d');
+      const stats = document.getElementById('traffic-stats');
+
+      setInterval(() => {
+        bandwidthHistory.push(bytesTransferred);
+        bandwidthHistory.shift();
+        const currentBps = bytesTransferred;
+        bytesTransferred = 0;
+
+        stats.innerText = `Current Throughput: ${(currentBps / 1024).toFixed(2)} KB/s`;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+
+        const maxVal = Math.max(...bandwidthHistory, 1024);
+        const stepX = canvas.width / (bandwidthHistory.length - 1);
+
+        bandwidthHistory.forEach((val, i) => {
+          const x = i * stepX;
+          const y = canvas.height - (val / maxVal) * (canvas.height - 20) - 10;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      }, 1000);
+    }
+
+    // --- SECURE VAULT (SELF-DESTRUCTING NOTES) ---
+    document.getElementById('btn-send-vault').addEventListener('click', () => {
+      const note = document.getElementById('vault-input').value.trim();
+      if (!note) { alert("Enter a note first!"); return; }
+
+      const vaultData = { type: 'SECURE_VAULT', message: note };
+      const role = roleSelect.value;
+
+      if (role === 'host') {
+        Object.values(activeConnections).forEach(conn => conn.send(vaultData));
+      } else {
+        if (activeConnectionClient && activeConnectionClient.open) {
+          activeConnectionClient.send(vaultData);
+        }
+      }
+      trackTraffic(JSON.stringify(vaultData).length);
+      document.getElementById('vault-input').value = '';
+      alert("Secure note sent successfully! It will self-destruct upon reading.");
+    });
+
+    function handleIncomingVault(message) {
+      const display = document.getElementById('vault-display');
+      display.innerHTML = `🔒 <b>Encrypted Note Received:</b> <br><span style="background: rgba(15,23,42,0.9); padding: 8px; display:inline-block; margin-top:5px; border-radius:4px; border:1px solid #22c55e;">${message}</span> <br><button class="btn btn-red" style="width:auto; padding:4px 10px; font-size:12px; margin-top:8px;" onclick="burnVault()">Burn / Destroy Note 🔥</button>`;
+    }
+
+    function burnVault() {
+      document.getElementById('vault-display').innerHTML = `<span style="color: #ef4444;">🔥 Note burned and permanently destroyed!</span>`;
+    }
+
     // --- FILE TRANSFER ---
     document.getElementById('btn-send-file').addEventListener('click', () => {
       const file = fileInput.files[0];
@@ -556,6 +666,7 @@
             activeConnectionClient.send(fileData);
           }
         }
+        trackTraffic(fileData.fileBuffer.byteLength);
         fileStatus.innerText = `File sent successfully: ${file.name} ✅`;
       };
       reader.readAsArrayBuffer(file);
